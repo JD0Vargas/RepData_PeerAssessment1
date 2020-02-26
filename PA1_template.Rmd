@@ -4,22 +4,112 @@ output:
   html_document:
     keep_md: true
 ---
+## load libraries
+
+```{r}
+library(ggplot2)
+
+```
+
 
 
 ## Loading and preprocessing the data
 
+### Data reading
+
+```{r}
+Data=read.csv('activity.csv')
+summary(Data)
+head(Data)
+```
 
 
 ## What is mean total number of steps taken per day?
 
+```{r}
+TotalSteps<-tapply(Data$steps, Data$date, sum, na.rm=TRUE)
+TotalSteps
+hist(TotalSteps, main = "Total number of steps taken per day", xlab = "Total steps taken per day", col = "Red")
+```
+
+### Mean
+```{r}
+mean(TotalSteps)
+```
+### Median
+```{r}
+median(TotalSteps)
+```
 
 
-## What is the average daily activity pattern?
+## What is the average daily NewData pattern?
 
+```{r}
+MeanStepsInt<-tapply(Data$steps, Data$interval, mean, na.rm=TRUE)
+plot(names(MeanStepsInt), MeanStepsInt, type = "l", col="darkblue", lwd = 2, xlab="Interval",
+     ylab="Average number of steps", main="Average number of steps per intervals")
 
+```
+
+###  the maximum number of steps
+```{r}
+M<-max(MeanStepsInt)
+as.numeric(names(MeanStepsInt[MeanStepsInt==M]))
+```
 
 ## Imputing missing values
+### the total number of missing values
+```{r}
+sum(is.na(Data$steps))
+```
+### New dataset
+```{r}
+imputed_steps <- MeanStepsInt[match(Data$interval,names(MeanStepsInt))]
+NewData<-transform(Data, steps = ifelse(is.na(Data$steps), yes = imputed_steps, no = Data$steps))
+
+```
+
+### Histogram
+
+```{r}
+TotalSteps2<-tapply(NewData$steps, NewData$date, sum)
+TotalSteps2
+hist(TotalSteps2, main = "Total number of steps taken per day", xlab = "Total steps taken per day", col ='green')
+```
+
+### Mean
+```{r}
+mean(TotalSteps2)
+```
+### Median
+```{r}
+median(TotalSteps2)
+```
+
+The mean didn’t change after the replacements of NAs, the median changed about 0.1% of the original value.
+
+## Are there differences in NewData patterns between weekdays and weekends?
+
+```{r}
+NewData$date <- as.Date(strptime(NewData$date, format="%Y-%m-%d"))
+NewData$datetype <- sapply(NewData$date, function(x) {
+        if (weekdays(x) == "sábado" | weekdays(x) =="domingo") 
+                {y <- "Weekend"} else 
+                {y <- "Weekday"}
+                y
+        })
+```
+
+```{r}
+NewData_by_date <- aggregate(steps~interval + datetype, NewData, mean, na.rm = TRUE)
+plot<- ggplot(NewData_by_date, aes(x = interval , y = steps, color = datetype)) +
+       geom_line() +
+       labs(title = "Average daily steps by type of date", x = "Interval", y = "Average number of steps") +
+       facet_grid(datetype~.)
+print(plot)
+
+```
 
 
 
-## Are there differences in activity patterns between weekdays and weekends?
+
